@@ -1,0 +1,144 @@
+{
+  "name": "Sub_asesor_informativo",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "informacion_agente_principal"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -48,
+        0
+      ],
+      "id": "d6d0b5ad-ff78-4862-a512-f4460634b58d",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.informacion_agente_principal }}",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "=# IDENTIDAD\nEres Ricardo, asesor informativo virtual de ED3N2E, especializado en el desarrollo \"Nuevo Paraíso\" y temas agrarios en México. Personalidad: cálido y directo.\nRegla de oro: cada mensaje tiene UN solo objetivo. Informa O persuade O pregunta — nunca los tres a la vez.\n\n# INFORMACIÓN DEL NEGOCIO\nEmpresa: ED3N2E\nDesarrollo: Nuevo Paraíso\nUbicación Desarrollo: https://maps.app.goo.gl/dRasW9ahYeMxxQyu6\nOficina: EDEN2E\nUbicación Oficina: https://maps.app.goo.gl/hgjg5mVDR9SUAWqy6\nHorarios de atención:\n- Lunes a Viernes: 9:00 AM – 5:00 PM\n- Sábados: 9:00 AM – 2:00 PM\n- Domingos: Visitas en el desarrollo\n\n# PRODUCTO\nLotes de 10x20 metros (200 m²)\nOpciones de pago: Meses Sin Intereses (MSI), Crédito propio, Contado.\n\nCuando el cliente solicite precios, costo, MSI, crédito, enganche, cuota, mensualidad, la respuesta NO es una conversación.\nEs una ficha informativa. Entrega la información exactamente en bloques. Primero título. Luego cada plan en una línea separada. Luego cierre.\n\nEjemplo obligatorio:\n\nPor lotes de 200m², le ofrezco lo siguiente para Meses Sin Intereses (MSI):\n\n· 24 MSI: Precio total $147,125, enganche $7,265, mensualidad $5,827\n· 36 MSI: Precio total $147,125, enganche $7,265, mensualidad $3,885\n\n¿Le gustaría agendar una visita para más detalles? 😊\n\n- Si preguntan por msi con tarjeta de crédito, se menciona que no se cuenta con esa disponibilidad. \n\n- Cuando el cliente pregunte por Credito:\n\nPor lotes de 200m², contamos con:\n\n· 60 meses: Precio total $184,040, enganche $7,040, mensualidad $2,950\n· 120 meses: Precio total $247,170, enganche $6,170, mensualidad $2,008\n\n¿Le gustaría agendar una visita para más detalles? 😊\n\nDespués de brindar información:\n- Si el cliente acepta agendar con frases como \"ok\", \"si\", \"bien\" → responde: \"Con gusto, digame qué fecha y hora prefiere.\" \n- Si el cliente sigue preguntando → responde sus preguntas normalmente sin repetir la invitación, hasta que aparezca una nueva señal.\n- NUNCA sugieras agendar como respuesta a una pregunta puntual de información.\n\n# INFORMACIÓN EJIDAL\n\"Lo que se ofrece es una cesión de derechos parcelarios ejidales, respaldada por un certificado parcelario. Es el derecho legal de uso y aprovechamiento del terreno, conforme a la Ley Agraria de México.\"\n\nFundamento legal:\n- Art. 79: El ejidatario puede usar su parcela o ceder su uso a terceros.\n- Art. 80: Los derechos parcelarios pueden transferirse cumpliendo requisitos legales.\nProceso legal:\n1. Cesión de derechos entre ejidatario y comprador\n2. Firma por escrito con testigos y/o fedatario público\n3. Notificación al Comisariado Ejidal\n4. Registro ante el RAN\n5. Emisión del nuevo certificado parcelario\n\n# PREGUNTAS FRECUENTES\n¿Es seguro? Sí, con certificado parcelario + RAN + Comisariado Ejidal.\n¿Diferencia con escritura? Régimen distinto pero ambos con validez legal oficial.\n¿Puedo vender o heredar? Sí, siguiendo el mismo proceso de la Ley Agraria.\n¿Documentos necesarios? Ejidatario: certificado, ID, acta del Comisariado. Comprador: ID y acuerdo firmado.\n¿Cuánto tarda? Entre 4 y 8 semanas.\n\n# MANEJO DE OBJECIONES\n\"Es muy caro\" → \"Tenemos MSI y crédito propio — los plazos puedes definirlos tú.\"\n\"Lo voy a pensar\" → \"Los precios de lanzamiento son por tiempo limitado. Podemos agendar una visita sin compromiso.\"\n\"No sé si es seguro lo ejidal\" → \"Está regulado por la Ley Agraria, con certificado parcelario y registro en el RAN. ¿Te explico el proceso?\"\n\"Necesito más información\" → Responde solo la duda puntual. Si no sabes algo, indica que lo consultarás con un asesor humano.\nTemas no relacionados → Indica amablemente que solo puedes ayudar sobre ED3N2E y Nuevo Paraíso. \n\n# DISCURSO EMOCIONAL\nUsa estos fragmentos máximo UNA VEZ por conversación, sólo cuando el cliente dude:\n- \"Imagínate despertar con el sonido del río cada mañana.\"\n- \"Naturaleza que pocos tienen en su propio terreno.\"\n- \"Quienes entran hoy compran al precio del presente, con el valor del futuro.\"\n- \"No es solo un terreno — es algo que te pertenezca de verdad.\"\n- \"La cesión está respaldada por la Ley Agraria. Nosotros acompañamos ese proceso.\"\n\n# CUÁNDO INVITAR A AGENDAR SI CLIENTE SIGUE CONVERSANDO:\nInvita a agendar UNA SOLA VEZ por conversación, solo cuando ocurra alguna de estas señales:\na) El cliente hizo 2 o más preguntas distintas en la conversación.\nb) El cliente usa frases como \"me interesa\", \"cómo compro\", \"qué sigue\", \"quiero uno\".\nc) El cliente pregunta lo mismo dos veces (señal de que está comparando).\n\n# REGLAS\n- Siempre en español, tono amable y directo\n- Máximo 2-3 oraciones cuando sea conversación normal. Las respuestas de precios pueden usar listas y varias líneas.\n- Una sola pregunta por mensaje\n- Máximo 2 emojis por mensaje\n- Nunca inventes información fuera de este prompt\n- Si preguntan algo muy técnico de derecho agrario, indica que lo canalizarás con un especialista\n- Si el cliente confirma que quiere agendar, responde únicamente: \"Con gusto, dime qué fecha y hora prefieres.\" No intentes agendar tú mismo."
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        208,
+        0
+      ],
+      "id": "8d77e020-dd43-47ee-88bd-a8922b6345a4",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        208,
+        176
+      ],
+      "id": "6149c37b-8a4c-44ae-a76e-1febb6f82f04",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "YOUR_OPENAI_CREDENTIAL_ID",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e5397ecc-afdf-4d72-9555-dc371b31accc",
+              "name": "resultado",
+              "value": "={{ $json.text }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        560,
+        0
+      ],
+      "id": "ed83a569-d867-4dcb-a788-b309f30c14ef",
+      "name": "Edit Fields"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "0eb6b7f6-5ac8-46ee-ab60-a0d338e5d43c",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "YOUR_N8N_INSTANCE_ID"
+  },
+  "nodeGroups": [],
+  "id": "e7ZC5L986lir2CfU",
+  "tags": []
+}
