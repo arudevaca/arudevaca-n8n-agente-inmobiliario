@@ -1,0 +1,2205 @@
+{
+  "name": "Flujo Prueba Aru",
+  "nodes": [
+    {
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_CALENDAR_EMAIL",
+          "mode": "list",
+          "cachedResultName": "YOUR_GOOGLE_CALENDAR_EMAIL"
+        },
+        "start": "={{ $json.start_time }}",
+        "end": "={{ $json.end_time }}",
+        "additionalFields": {
+          "attendees": [],
+          "description": "={{ $json.description }}",
+          "summary": "={{ $json.summary }}"
+        }
+      },
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        -704,
+        1408
+      ],
+      "id": "a6922c5f-d3c0-4f18-9a25-75db84d17bc4",
+      "name": "Crear cita",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "YOUR_GOOGLE_CALENDAR_CREDENTIAL_ID",
+          "name": "Google Calendar account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const fechas = $('Preparar fechas').first().json;\nconst tipo = $('Tipo_accion').first().json;\nconst subInput = $('Sub_gestion_citas').first().json;\n\n// Parsear detalles del cliente (viene como \"Nombre, Telefono, Email\")\nconst partes = tipo.detalles_cliente.split(',').map(s => s.trim());\nconst nombreCliente = partes[0] || '';\nconst telefono = partes[1] || '';\nconst email = partes[2] || '';\n\n// Tipo de cita desde sub_gestion_citas\nconst tipoCita = subInput.tipo_cita || tipo.tipo_cita || 'Oficina';\n\nreturn [{\n  json: {\n    start_time: fechas.start_time,\n    end_time: fechas.end_time,\n    summary: `Cita con ${nombreCliente} en ED3N2E — ${tipoCita}`,\n    description: `Phone: ${telefono} | Tipo: ${tipoCita}`,\n    attendee_email: email\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -928,
+        1408
+      ],
+      "id": "5414c78c-321c-460c-b7d9-8cf53d25cbf8",
+      "name": "Datos cita"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "{\n  \"my_field_1\": \"respuesta\",\n  \"my_field_2\": \"La cita fue agendada\"\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -480,
+        1408
+      ],
+      "id": "fb03a601-4c4c-46a3-a7a2-b3da065417f8",
+      "name": "Respuesta: agendado",
+      "notes": "Este nodo envía la respuesta del output al agente"
+    },
+    {
+      "parameters": {
+        "jsCode": "const eventos = $input.all();\nconst fechaBuscada = $('Preparar fechas1').first().json.start_time;\nconst nombreBuscado = $('Tipo_accion').first().json.detalles_cliente?.split(',')[0].trim().toLowerCase() || '';\n\nconst eventoEncontrado = eventos.find(e => {\n  const coincideFecha = e.json.start.dateTime === fechaBuscada;\n  const coincideNombre = e.json.summary?.toLowerCase().includes(nombreBuscado);\n  return coincideFecha && coincideNombre; // ambos deben coincidir\n});\n\nif (eventoEncontrado) {\n  return [{\n    json: {\n      encontrado: true,\n      event_id: eventoEncontrado.json.id,\n      summary: eventoEncontrado.json.summary\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    encontrado: false\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1152,
+        1792
+      ],
+      "id": "9c6b0327-ff80-4449-8860-f413fbda1153",
+      "name": "Filtrar evento"
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "calendar": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_CALENDAR_EMAIL",
+          "mode": "list",
+          "cachedResultName": "YOUR_GOOGLE_CALENDAR_EMAIL"
+        },
+        "eventId": "={{ $json.event_id }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        -480,
+        1696
+      ],
+      "id": "d0cd261d-06bc-4c34-ae62-87bd9e380112",
+      "name": "Borrar evento",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "YOUR_GOOGLE_CALENDAR_CREDENTIAL_ID",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "92dfba3d-e901-4234-9796-c16ece691b1d",
+              "name": "resultado",
+              "value": "Cita cancelada exitosamente",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -256,
+        1696
+      ],
+      "id": "e543ab27-fc89-41c8-be87-b3e56e4b4f24",
+      "name": "Respuesta: cancelado",
+      "notes": "Este nodo envía la respuesta del output al agente"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "84b7431a-1619-41d8-b12b-695828b1a13b",
+              "name": "resultado",
+              "value": "No se encontró ninguna cita en esa fecha y hora",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -704,
+        1888
+      ],
+      "id": "1832e012-c780-4c6f-bd47-4bec1eb23c75",
+      "name": "Respuesta: no existe cita",
+      "notes": "Este nodo envia respuesta de no disponibilidad al agente"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{\n  json: {\n    event_id: $input.first().json.event_id\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -704,
+        1696
+      ],
+      "id": "6b392348-291a-4a94-8e76-8ee611816beb",
+      "name": "Preparar fechas2"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "84b7431a-1619-41d8-b12b-695828b1a13b",
+              "name": "no hay disponibilidad",
+              "value": "El horario solicitado no está disponible. Por favor elige otra hora.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -928,
+        1600
+      ],
+      "id": "402c0d4e-1ef0-4ab1-87e6-ad6f657379ef",
+      "name": "Respuesta: no está disponible",
+      "notes": "Este nodo envia respuesta de no disponibilidad al agente"
+    },
+    {
+      "parameters": {
+        "jsCode": "const fechaHora = $input.first().json.fecha_hora.toString();\nconst inicio = new Date(fechaHora);\nconst fin = new Date(inicio.getTime() + 60 * 60 * 1000); // +1 hora\n\nfunction toGCalFormat(date) {\n  const pad = n => String(n).padStart(2, '0');\n  const yyyy = date.getFullYear();\n  const MM = pad(date.getMonth() + 1);\n  const dd = pad(date.getDate());\n  const HH = pad(date.getHours());\n  const mm = pad(date.getMinutes());\n  const ss = pad(date.getSeconds());\n  return `${yyyy}-${MM}-${dd}T${HH}:${mm}:${ss}-07:00`;\n}\n\nreturn [{\n  json: {\n    ...$input.first().json,\n    start_time: toGCalFormat(inicio),\n    end_time: toGCalFormat(fin)\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1600,
+        1792
+      ],
+      "id": "d76541c5-3743-4aa7-bc49-13b57f38075b",
+      "name": "Preparar fechas1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\n\nconst fechaHora = data.fecha_hora.toString();\n\nconst inicio = new Date(fechaHora);\nconst ahora = new Date();\n\n// Tipo de cita\nconst tipo = data.tipo_cita || \"Oficina\";\n\n// Regla de anticipación\nlet horasMinimas = 2;\nif (tipo.toLowerCase().includes(\"desarrollo\")) {\n  horasMinimas = 24;\n}\n// Diferencia real en horas\nconst diferenciaHoras =\n  (inicio - ahora) / (1000 * 60 * 60);\n// Validación\nconst cumpleAntelacion =\n  diferenciaHoras >= horasMinimas;\n// Si no cumple, devolvemos bloqueo\nif (!cumpleAntelacion) {\n\n  const nextSlot = new Date(inicio.getTime() + horasMinimas * 60 * 60 * 1000);\n\n  const suggested_slots = [\n    toGCalFormat(nextSlot)\n  ];\n\n  return [{\n    json: {\n      ...data,\n      disponible,\n      reason_code: \"MIN_ADVANCE_NOT_MET\",\n      diferenciaHoras,\n      suggested_slots\n    }\n  }];\n}\n\n\n// Si cumple, seguimos normal\n\nconst fin = new Date(inicio.getTime() + 60 * 60 * 1000);\n\n\nfunction toGCalFormat(date) {\n  const pad = n => String(n).padStart(2, '0');\n\n  const yyyy = date.getFullYear();\n  const MM = pad(date.getMonth() + 1);\n  const dd = pad(date.getDate());\n  const HH = pad(date.getHours());\n  const mm = pad(date.getMinutes());\n  const ss = pad(date.getSeconds());\n\n  return `${yyyy}-${MM}-${dd}T${HH}:${mm}:${ss}-07:00`;\n}\n\n\nreturn [{\n  json: {\n    ...data,\n\n    disponible: true,\n\n    start_time: toGCalFormat(inicio),\n    end_time: toGCalFormat(fin),\n\n    diferenciaHoras\n    \n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1600,
+        1504
+      ],
+      "id": "f2996cbb-764f-4ec5-a6c4-5792d96012d9",
+      "name": "Preparar fechas"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "4dd22041-bbb5-40f9-b1af-23e7dd153b44",
+              "leftValue": "={{$json.available}}",
+              "rightValue": "true",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -1152,
+        1504
+      ],
+      "id": "3acd5733-77ce-4cf6-8b80-8d7dae2194cb",
+      "name": "If - está libre?"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "60c19db4-4972-4cb4-abc6-048f22409492",
+              "leftValue": "={{ $json.encontrado }}",
+              "rightValue": "=",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -928,
+        1792
+      ],
+      "id": "4abad444-3897-4f0c-a0ba-d2c900ac55d7",
+      "name": "If - existe cita?"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "calendar": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_CALENDAR_EMAIL",
+          "mode": "list",
+          "cachedResultName": "YOUR_GOOGLE_CALENDAR_EMAIL"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        -1376,
+        1792
+      ],
+      "id": "9c54cc49-7456-4e0f-92f1-f14aeb39e568",
+      "name": "Cancelar citas",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "YOUR_GOOGLE_CALENDAR_CREDENTIAL_ID",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "calendar",
+        "calendar": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_CALENDAR_EMAIL",
+          "mode": "list",
+          "cachedResultName": "YOUR_GOOGLE_CALENDAR_EMAIL"
+        },
+        "timeMin": "={{ $json.start_time }}",
+        "timeMax": "={{ $json.end_time }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        -1376,
+        1504
+      ],
+      "id": "a9feefad-621f-4bad-978a-feef545fb307",
+      "name": "Revisar disponibilidad",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "YOUR_GOOGLE_CALENDAR_CREDENTIAL_ID",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "4181206d-69b3-481d-b6da-d59572f6d623",
+                    "leftValue": "={{ $json.accion }}",
+                    "rightValue": "agendar",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "572220a8-62d5-463e-a300-c9aae381d0b5",
+                    "leftValue": "={{ $json.accion }}",
+                    "rightValue": "cancelar",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -1824,
+        1600
+      ],
+      "id": "259a9e46-2b00-4b05-a183-f6c2944390d6",
+      "name": "Tipo_accion"
+    },
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "accion"
+            },
+            {
+              "name": "fecha_hora"
+            },
+            {
+              "name": "detalles_cliente"
+            },
+            {
+              "name": "event_id"
+            },
+            {
+              "name": "tipo_cita"
+            },
+            {
+              "name": "email"
+            },
+            {
+              "name": "telefono"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -2048,
+        1600
+      ],
+      "id": "c4fc1586-d9ce-4647-b016-6898ecf3fe64",
+      "name": "Sub_gestion_citas",
+      "alwaysOutputData": true,
+      "notes": "Usa esta herramienta para gestionar citas en Google Calendar.\n\nPARÁMETRO OBLIGATORIO SIEMPRE:\n- accion: usa exactamente \"agendar\" o \"cancelar\"\n\nPARA AGENDAR UNA NUEVA CITA (accion=\"agendar\"):\n- fecha_hora: fecha y hora de la cita en formato ISO (ej. \"2026-06-15T10:00:00\")\n- detalles_cliente: string con formato \"Nombre, Telefono, Email\"\n- tipo_cita: \"Oficina\" o \"Desarrollo\"\n- event_id: del Calendar\n\nPARA CANCELAR UNA CITA (accion=\"cancelar\"):\nDebes hacer DOS llamadas en secuencia:\n  1. Primera llamada con accion=\"agendar\" y la fecha_hora de la cita a cancelar. \n     Esto devuelve la lista de eventos. Identifica el evento del cliente por nombre.\n  2. Segunda llamada con accion=\"cancelar\" y el event_id obtenido en el paso anterior.\n     En esta segunda llamada NO necesitas fecha_hora ni detalles_cliente.\n"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4.1-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        320,
+        2656
+      ],
+      "id": "f38789b1-994a-413c-86ef-73134eec74bc",
+      "name": "OpenAI Chat Model1",
+      "credentials": {
+        "openAiApi": {
+          "id": "YOUR_OPENAI_CREDENTIAL_ID",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.session_id }}",
+        "sessionTTL": "={\n  \"sessionIdType\": \"customKey\",\n  \"sessionKey\": \"={{ $json.session_id }}\",\n  \"sessionTTL\": 21600\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryRedisChat",
+      "typeVersion": 1.5,
+      "position": [
+        448,
+        2736
+      ],
+      "id": "326baff0-404f-48af-af4d-bff21a11730a",
+      "name": "Redis Chat Memory1",
+      "executeOnce": true,
+      "alwaysOutputData": false,
+      "credentials": {
+        "redis": {
+          "id": "YOUR_REDIS_CREDENTIAL_ID",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "e9933132-0bbf-4023-a9f9-00259a036597",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -2368,
+        2448
+      ],
+      "id": "9ff3575b-d58d-409e-b262-e3e868ad4129",
+      "name": "Webhook1",
+      "webhookId": "e9933132-0bbf-4023-a9f9-00259a036597"
+    },
+    {
+      "parameters": {
+        "description": "Úsalo cuando el cliente tenga preguntas sobre el negocio, servicios, precios, horarios o políticas. NO usar para nada relacionado a Google Calendar como agendar o cancelar citas.",
+        "workflowId": {
+          "__rl": true,
+          "value": "e7ZC5L986lir2CfU",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/e7ZC5L986lir2CfU",
+          "cachedResultName": "Sub_asesor_informativo"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "informacion_agente_principal": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('informacion_agente_principal', ``, 'string') }}"
+          },
+          "matchingColumns": [
+            ""
+          ],
+          "schema": [
+            {
+              "id": "informacion_agente_principal",
+              "displayName": "informacion_agente_principal",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        736,
+        2704
+      ],
+      "id": "b4b0e6e8-aa4c-4d9c-8a9f-2b38205fccad",
+      "name": "Asesor Informativo1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "40a530e3-ce07-4e32-81fb-f5a24593f9d9",
+              "name": "output",
+              "value": "¡Muy buen día! ☀️\\nMi nombre es Ricardo y quiero compartirle una gran oportunidad en Nuevo Paraíso 🏞️✨\\n\\nUn desarrollo en San Blas, rodeado de naturaleza y un hermoso río 🌿💧, con amenidades como:\\n✅ Caseta de vigilancia\\n✅ Pérgolas a la orilla del río\\n✅ Área de juegos y más\\n \\nTambién contamos con:\\n✔️ MSI\\n✔️ Crédito y facilidades de pago\\n\\n¿Cuál opción le interesa más? 😊",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        96,
+        1952
+      ],
+      "id": "3cfe31a6-e1a9-4bc0-b0ca-1108a702aadc",
+      "name": "Mensaje bienvenida1"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v19.0/1026990697171670/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_META_WHATSAPP_ACCESS_TOKEN"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $('Armar Mensaje Chatwoot1').item.json.body.conversation.contact_inbox.source_id }}\",\n  \"type\": \"video\",\n  \"video\": {\n    \"link\": \"https://files.catbox.moe/4vn70z.mp4\"\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -80,
+        1952
+      ],
+      "id": "7a242232-b8b6-4889-b1e5-bdd4efbaf363",
+      "name": "Enviar video2"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Hoja 1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "=Telefono",
+              "lookupValue": "={{ $json.phone }}"
+            }
+          ]
+        },
+        "options": {
+          "returnFirstMatch": true
+        }
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        -1776,
+        2432
+      ],
+      "id": "d06ef96f-8ca3-428f-b14f-4716d7bcff91",
+      "name": "Buscar Contacto en Sheets1",
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_GOOGLE_SHEETS_CREDENTIAL_ID",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "condicion-es-nuevo",
+              "leftValue": "={{ $json.es_nuevo }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -1392,
+        2432
+      ],
+      "id": "9876c54f-7cc7-4a63-9a8a-e0678f9b085f",
+      "name": "¿Es nuevo contacto?1"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "id"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Telefono": "={{ $json.phone }}",
+            "Ultima_consulta": "= {{ $now.format('dd/MM/yyyy') }}",
+            "Nombre": "{{ $json.body.sender.name}}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Nombre",
+              "displayName": "Nombre",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Telefono",
+              "displayName": "Telefono",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Tipo cita",
+              "displayName": "Tipo cita",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Ultima_consulta",
+              "displayName": "Ultima_consulta",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Fecha_cita",
+              "displayName": "Fecha_cita",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "locationDefine": {
+            "values": {
+              "headerRow": 2
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        -1216,
+        2320
+      ],
+      "id": "a7a4df57-13ec-492b-99f0-eb030f9ad7a7",
+      "name": "Guardar Nuevo Contacto1",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_GOOGLE_SHEETS_CREDENTIAL_ID",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// MODO PRUEBA: número fijo para testear\nconst phone = $input.first().json.body.conversation.contact_inbox.source_id;\n\nreturn [{\n  json: {\n    phone,\n    chatInput: $input.first().json.body.content,\n    sessionId: $input.first().json.sessionId\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1952,
+        2336
+      ],
+      "id": "e4286b6f-6f5d-41cb-8397-75f903f8ee2c",
+      "name": "Extraer Teléfono1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const phone = $('Parsear es_nuevo1').first().json.phone;\nconst chatInput = $('Parsear es_nuevo1').first().json.chatInput;\nconst sessionId = $('Parsear es_nuevo1').first().json.sessionId;\n\n// Construimos el JSON con estructura compatible con el resto del flujo\nreturn [{\n  json: {\n    body: {\n      message_type: \"incoming\",\n      content: chatInput,\n      conversation: {\n        id: sessionId,\n        contact_inbox: {\n          source_id: phone\n        },\n        messages: [\n          {\n            sender: {\n              name: \"Cliente\"\n            }\n          }\n        ]\n      }\n    }\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1056,
+        2448
+      ],
+      "id": "53fbe968-7e2a-423d-8b24-84147d253e0a",
+      "name": "Armar Mensaje Chatwoot1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "09ba8b89-ece7-462d-9697-a91d5fd0961f",
+              "name": "telefono",
+              "value": "={{ $json.body.conversation.contact_inbox.source_id }}",
+              "type": "string"
+            },
+            {
+              "id": "47ec4375-d98d-41d8-a633-875fa4ccef4a",
+              "name": "ultima_consulta",
+              "value": "={{ $now.format('dd/MM/yyyy') }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -896,
+        2448
+      ],
+      "id": "6a1ff60b-1ead-4687-92b4-a3154612926e",
+      "name": "Extraer Datos del Mensaje1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const original = $('Armar Mensaje Chatwoot1').first().json;\n\nconst sourceId = original.body.conversation.contact_inbox.source_id;\nconst nombre = original.body.conversation.messages[0].sender.name;\nconst chatInput = original.body.content;\n\nreturn [{\n  json: {\n    source_id: sourceId,\n    nombre: nombre,\n    chatInput: chatInput,\n    sessionId: sourceId,\n    body: original.body\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -720,
+        2448
+      ],
+      "id": "aace9bd7-568f-485b-8ee5-39e28b089b4e",
+      "name": "Normalizar Variables1"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "Clientes EDEN2E - n8n",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1r9PMGCa26l6Wvb2G8fXgFAxpuNuJbpPq5HopZbkoe0U/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Hoja 1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Telefono": "={{ $json.sessionId }}",
+            "Ultima_consulta": "={{ $now.format('dd/MM/yyyy') }}"
+          },
+          "matchingColumns": [
+            "Telefono"
+          ],
+          "schema": [
+            {
+              "id": "Nombre",
+              "displayName": "Nombre",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Telefono",
+              "displayName": "Telefono",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Tipo cita",
+              "displayName": "Tipo cita",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Ultima_consulta",
+              "displayName": "Ultima_consulta",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Fecha_cita",
+              "displayName": "Fecha_cita",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "locationDefine": {
+            "values": {
+              "headerRow": 2
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -544,
+        2448
+      ],
+      "id": "3eecb1e6-3904-4d4d-b3b7-cb4a47d36772",
+      "name": "Actualizar Ultima Consulta1",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_GOOGLE_SHEETS_CREDENTIAL_ID",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Webhook1').item.json.body.content }}",
+                    "rightValue": "Quiero más información",
+                    "operator": {
+                      "type": "string",
+                      "operation": "contains"
+                    },
+                    "id": "56cf90cd-82b3-495f-b589-07a6d5dfcd9f"
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -368,
+        2448
+      ],
+      "id": "2008627f-f0cb-45e9-b172-fc1131631f14",
+      "name": "Enrutar por Intención1"
+    },
+    {
+      "parameters": {
+        "jsCode": "\n// Tomamos el phone del nodo anterior\nconst phone = $('Extraer Teléfono1').first().json.phone;\n\n// Google Sheets devuelve items vacíos si no encontró ninguna fila\nconst items = $input.all();\nconst encontrado = items.length > 0 && items[0].json?.Telefono;\n\nconst esNuevo = !encontrado;\n\nreturn [{\n  json: {\n    phone,\n    es_nuevo: esNuevo,\n    chatInput: $('Extraer Teléfono1').first().json.chatInput,\n    sessionId: $('Extraer Teléfono1').first().json.sessionId\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1584,
+        2432
+      ],
+      "id": "1b182c3a-aa1c-461e-948e-01fddd0ad5ed",
+      "name": "Parsear es_nuevo1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "36f2a5d1-8889-40d5-b9bd-f4a374e5a97b",
+              "name": "text",
+              "value": "={{ $('Normalizar Variables1').item.json.chatInput }}",
+              "type": "string"
+            },
+            {
+              "id": "2c3280d2-768e-4652-98d1-3e7116fcf5c6",
+              "name": "session_id",
+              "value": "={{ $('Webhook1').item.json.body.conversation.contact_inbox.source_id}}",
+              "type": "string"
+            },
+            {
+              "id": "e0ab3f0e-2fa3-4f1f-94e8-f583c2d1b7f2",
+              "name": "nombre",
+              "value": "={{ $('Webhook1').item.json.body.conversation.messages[0].sender.name }}",
+              "type": "string"
+            },
+            {
+              "id": "9b236d2f-5fd4-4a47-aa4b-bcf2cb5a8aa3",
+              "name": "conversation_id",
+              "value": "={{ $('Webhook1').item.json.body.conversation.contact_inbox.id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -176,
+        2464
+      ],
+      "id": "4bb7047f-ee83-4ae3-b34f-a83ca891988c",
+      "name": "Extraer datos "
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "key": "595984605826"
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        1504,
+        2240
+      ],
+      "id": "51597dad-6849-4a8e-aee0-20745dc50e89",
+      "name": "Redis",
+      "credentials": {
+        "redis": {
+          "id": "YOUR_REDIS_CREDENTIAL_ID",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const now = new Date();\n\nfunction getMinTimestamp(minHorasAntelacion) {\n    const min = new Date(now);\n    min.setMinutes(0, 0, 0);\n    min.setHours(min.getHours() + minHorasAntelacion + 1);\n    return min.toISOString();\n}\n\nfunction nextValidSlot(minHorasAntelacion, soloDomingo = false) {\n    // ... tu función igual que antes, para cuando necesitas sugerir un slot\n}\n\nreturn [{\n    json: {\n        horaMinOficina: getMinTimestamp(2),       // ISO string de la hora mínima\n        slotOficinaProximo: nextValidSlot(2, false), // sugerencia si el usuario no propone hora\n        slotDesarrolloProximo: nextValidSlot(24, true),\n        horarioOficina: \"Lunes a Viernes 9:00-17:00, Sábado 9:00-14:00, Domingo cerrado\",\n        zonaHoraria: \"America/Hermosillo\",\n        session_id: $('Extraer datos ').first().json.session_id,\n        chatInput: $('Normalizar Variables1').first().json.chatInput\n    }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        2480
+      ],
+      "id": "fadbc5e4-285d-44df-a57c-d93bb9ca8c0d",
+      "name": "Cálculo agendamiento"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://automatizar-n8n-chatwoot.acvaud.easypanel.host/api/v1/accounts/1/conversations/{{ $('Webhook1').item.json.body.conversation.id }}/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"content\": \"{{ $json.output }}\",\n  \"message_type\": \"outgoing\",\n  \"content_type\": \"text\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        288,
+        1952
+      ],
+      "id": "1171431c-a0da-43d4-9ddd-f4ae7b4ce0b4",
+      "name": "Respuesta bienvenida",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "bC2ABRYbcdlVmGc8",
+          "name": "Header Auth account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://automatizar-n8n-chatwoot.acvaud.easypanel.host/api/v1/accounts/1/conversations/{{ $('Webhook1').item.json.body.conversation.id }}/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "content",
+              "value": "={{ $json.output }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        848,
+        2368
+      ],
+      "id": "3a39d786-1722-4b93-9c58-aec4f2739038",
+      "name": "Respuesta en chat",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "bC2ABRYbcdlVmGc8",
+          "name": "Header Auth account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "Clientes EDEN2E - n8n",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1r9PMGCa26l6Wvb2G8fXgFAxpuNuJbpPq5HopZbkoe0U/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Hoja 1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Telefono": "={{ $json.Telefono }}",
+            "Nombre": "={{ $json.Nombre }}",
+            "Ultima_consulta": "={{ $json.Ultima_consulta}}",
+            "Tipo cita": "={{ $json.Tipo_cita }}",
+            "Fecha_cita": "={{ $json.fecha_cita }}"
+          },
+          "matchingColumns": [
+            "Telefono"
+          ],
+          "schema": [
+            {
+              "id": "Nombre",
+              "displayName": "Nombre",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Telefono",
+              "displayName": "Telefono",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Tipo cita",
+              "displayName": "Tipo cita",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Ultima_consulta",
+              "displayName": "Ultima_consulta",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Fecha_cita",
+              "displayName": "Fecha_cita",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "locationDefine": {
+            "values": {
+              "headerRow": 2
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -32,
+        1408
+      ],
+      "id": "9861a955-9387-4873-b045-e1edb22caf6a",
+      "name": "Actualizar datos de agendamiento",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_GOOGLE_SHEETS_CREDENTIAL_ID",
+          "name": "Google Sheets account"
+        }
+      },
+      "notes": "Detalles_cliente viene como un string compuesto y necesitas parsear el nombre. El nodo Code hace ese split limpiamente antes de llegar a Sheets, y además te da control total sobre el formato de fecha en timezone Hermosillo."
+    },
+    {
+      "parameters": {
+        "jsCode": "const sub = $('Sub_gestion_citas').first().json;\nconst calendar_cita = $('Crear cita').first().json;\n\n// detalles_cliente viene como \"Nombre, Telefono, Email\"\nconst partes = (sub.detalles_cliente || '').split(',').map(s => s.trim());\n\nconst nombre = partes[0] || '';\nconst telefono = sub.telefono || partes[1] || '';\nconst tipoCita = sub.tipo_cita || '';\n\n// Función para rellenar con ceros\nconst pad = n => String(n).padStart(2, '0');\n\n// Fecha actual Hermosillo\nconst now = new Date(new Date().toLocaleString('en-US', {\n  timeZone: 'America/Hermosillo'\n}));\n\nconst ultimaConsulta = `${pad(now.getDate())}/${pad(now.getMonth() + 1)}/${now.getFullYear()}`;\n\n// Fecha de la cita\nlet fecha_cita = '';\n\nif (calendar_cita.start?.dateTime) {\n  const iso = calendar_cita.start.dateTime;\n\n  // Ejemplo:\n  // 2026-07-03T14:00:00-07:00\n\n  const [fechaParte, horaCompleta] = iso.split('T');\n  const [anio, mes, dia] = fechaParte.split('-');\n\n  const hora24 = parseInt(horaCompleta.substring(0, 2), 10);\n  const minutos = horaCompleta.substring(3, 5);\n\n  let hora = hora24;\n  const ampm = hora >= 12 ? 'PM' : 'AM';\n\n  hora = hora % 12 || 12;\n\n  fecha_cita = `${dia}/${mes}/${anio} ${hora}:${minutos} ${ampm}`;\n}\n\nreturn [{\n  json: {\n    Nombre: nombre,\n    Telefono: telefono,\n    Tipo_cita: tipoCita,\n    fecha_cita,\n    Ultima_consulta: ultimaConsulta\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -256,
+        1408
+      ],
+      "id": "26d627d4-9796-44a0-97fb-b3b6846ac2f3",
+      "name": "Datos para Sheets",
+      "notes": "Telefono, nombre, correo para sheets"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "608a2770-19ea-4fe7-a40f-4dd327b70494",
+              "leftValue": "={{ $json.body.message_type }}",
+              "rightValue": "incoming",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {
+          "ignoreCase": false
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -2192,
+        2448
+      ],
+      "id": "6729a0a1-dea1-4248-8534-5cc347ed9c2c",
+      "name": "Verificar mensaje entrante/saliente"
+    },
+    {
+      "parameters": {
+        "description": "Úsala para CUALQUIER acción de Google Calendar como agendar o cancelar cita. \nRequiere los siguientes parámetros JSON de entrada:\n- accion: (String obligatorio) Debe ser exactamente 'agendar' o 'cancelar'.\n- fecha_hora: (String) La fecha y hora de la cita (Ej: '2026-06-15T16:00:00').\n- detalles_cliente: (String) Nombre del cliente, teléfono (obligatorio para crear).\n- event_id: (String) El identificador único de Google Calendar",
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "=8Qdgc0Sjs3CVyosq",
+          "cachedResultName": "=8Qdgc0Sjs3CVyosq"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "accion": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('accion', `El comando a ejecutar. Debe ser 'agendar' o 'cancelar'  `, 'string') }}",
+            "fecha_hora": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fecha_hora', `La fecha y hora interpretada del evento en formato ISO estándar`, 'string') }}",
+            "detalles_cliente": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('detalles_cliente', `Nombre, Telefono separados por coma`, 'string') }}",
+            "tipo_cita": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('tipo_cita', `Tipo de cita: en \"Oficina\" o en \"Desarrollo\"`, 'string') }}",
+            "event_id": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('event_id', `ID del evento`, 'string') }}",
+            "telefono": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('telefono', `Nro de telefono`, 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "accion",
+              "displayName": "accion",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "fecha_hora",
+              "displayName": "fecha_hora",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "detalles_cliente",
+              "displayName": "detalles_cliente",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "event_id",
+              "displayName": "event_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "tipo_cita",
+              "displayName": "tipo_cita",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "email",
+              "displayName": "email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": true
+            },
+            {
+              "id": "telefono",
+              "displayName": "telefono",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        576,
+        2720
+      ],
+      "id": "2673c9cd-13ba-488d-9e10-1a2ba29295da",
+      "name": "CITAS",
+      "notes": "Úsala solamente cuando el campo validacion.valido sea true.\nNunca ejecutar si el horario no cumple reglas."
+    },
+    {
+      "parameters": {
+        "description": "Úsala ÚNICAMENTE cuando el cliente proporcione su correo electrónico después de que una cita ya fue agendada exitosamente. \nParámetros requeridos: email (correo del cliente), nombre (nombre y apellido), fecha_hora (ISO 8601 de la cita agendada), tipo_cita (\"Oficina\" o \"Desarrollo\").\nNO usar para agendar ni cancelar citas.",
+        "source": "parameter",
+        "workflowJson": "{\n  \"email\": \"={{ $json.email }}\",\n  \"nombre\": \"={{ $json.nombre }}\",\n  \"fecha_hora\": \"={{ $json.fecha_hora }}\",\n  \"tipo_cita\": \"={{ $json.tipo_cita }}\",\n  \"Telefono\": \"={{ $json.Telefono }}\",\n  \"id\": \"={{ $('Webhook1').item.json.body.conversation.id }} }}\"\n}\n\n\n\n\n"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        896,
+        2656
+      ],
+      "id": "45bfaed1-da9e-477b-84fa-260d81423879",
+      "name": "Enviar email",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "promptType": "=define",
+        "text": "={{ $('Normalizar Variables1').item.json.chatInput }}",
+        "options": {
+          "systemMessage": "=Eres un agente de ejecución directa. Cuando tengas todos los datos necesarios, ejecuta la tool inmediatamente. Nunca pidas confirmación al usuario antes de ejecutar — la confirmación llega después, una vez que la tool responde.\n\nEres un asistente virtual de agendamiento de ED3N2E. Ayudas a gestionar citas y delegar dudas al asesor informativo.\n\nHoy es {{ $now.format('cccc, dd/LL/yyyy HH:mm') }}\n\n# INTENCIÓN\n- Agendar o cancelar → tool 'CITAS', una vez agendado debes pasar a la tool correo una vez que tienes el correo del usuario.\n- Consultas del negocio o venta general (MSI,crédito, pagos)→ tool 'Asesor Informativo'. Nunca respondas información del negocio desde tu propio conocimiento.\n\n# AGENDAR\n\nAntes de pedir cualquier dato, extrae del historial lo que el cliente ya proporcionó. Solo pide lo que falte, UN dato por mensaje.\nPROHIBIDO confirmar, reconfirmar o resumir datos antes de ejecutar. No digas \"confirmo que...\", \"entonces quieres...\", \"un momento validando...\" — ve directo a la acción.\n\nDatos necesarios:\n- tipo_cita: \"Oficina en Los Mochis \" o \"Desarrollo Nuevo Paraíso (visita los Domingos)\"\n- nombre_completo: nombre y apellido\n- fecha_hora: ofrecer SI O SI horarios disponibles, si tipo_cita == Oficina: “Lunes a Viernes: 9AM a 5 PM, Sábados: 9AM a 1PM”, tipo_cita == Desarrollo: \"De 9AM a 1PM\"\n— si el cliente usó término relativo (\"mañana\", \"el viernes\"), resuélvelo tú a ISO 8601 sin preguntar, sin confirmar, sin mencionar la fecha resuelta al cliente. Resuelve fechas relativas internamente SIN mencionar o confirmar con el cliente: \"mañana\" = hoy +1 día | \"pasado\" = hoy +2 | \"el lunes\" = próximo lunes. Conviértelas a ISO 8601 y procede directamente.\n\nSOLO úsalos si el cliente pide un horario inválido, ofreciendo Slots disponibles más próximos:\n- Oficina en Los Mochis: {{ $json.slotOficina }}\n- Desarrollo Nuevo Paraíso: {{ $json.slotDesarrollo }}\nOrden sugerido si todos faltan: tipo → nombre → fecha/hora.\nLa validación de horario la realiza el sistema.\nNunca decidas por criterio propio.\nSi validacion.valido=false:\nNo uses CITAS.\nExplica el motivo y ofrece otro horario.\n\nSi validacion.valido=true:\nEjecuta CITAS inmediatamente.\n# VALIDACIÓN DE HORARIOS\n\nPara citas de oficina:\nCalcula la diferencia real entre:\nfecha y hora solicitada - fecha y hora actual.\n\nEjemplo:\nHora actual 8:50\nCliente pide hoy 11:00\n\nResultado: disponible porque faltan más de 2 horas.\n\nSolo rechaza si faltan menos de 2 horas.\n\nCompara como timestamp completo.\nHorario válido para agendar (en formato 24hs):\n- Lun-Vie: 09:00AM a 04:00PM (la empresa cierra a las 5:00PM, última cita posible es 04:00PM)\nSe pueden agendar citas desde las 9 AM hasta las 4 PM. Una cita a las 4 PM es válida y debe ser agendada sin problema.\n- Sábado:  09:00AM a 1:00PM (la empresa cierra a las 2:00PM, última cita posible es 1:00PM)\n- Domingo: SOLO para visitas en Desarrollo Nuevo Paraíso: 9AM A 1PM.\n\n\n- Si el bloque está ocupado: rechaza en una oración y ofrece el siguiente horario válido.\n- Si cumple: ejecuta CITAS inmediatamente.\n- Nunca digas \"ya pasó la hora\" si no está indicado en los datos.\n\nEjecuta CITAS con:\n- accion=\"agendar\"\n- fecha_hora: ISO 8601 (ej: '2026-06-01T10:00:00')\n- detalles_cliente: 'Nombre, Teléfono'\n- tipo_cita: \"Oficina\" o \"Desarrollo\"\n- Teléfono: {{$json.session_id}}, nunca lo pidas al cliente.\n\nRecibirás horaMinOficina en formato ISO. Cuando el usuario proponga un horario, verifica tú mismo si esa hora es mayor o igual a horaMinOficina Y cae dentro del horario del negocio (L-V 9-17, Sáb 9-14, Dom cerrado). Si cumple ambas condiciones, intenta agendarlo directamente. Solo usa slotOficinaProximo para sugerir cuando el usuario no propone hora o cuando su hora propuesta no es válida.\n\nUna vez CITAS confirme:\n1. Confirma al cliente en una oración. Envia obligatoriamente la ubicacion de cita, si agendo en Oficina: https://maps.app.goo.gl/hgjg5mVDR9SUAWqy6. En Desarrollo: https://maps.app.goo.gl/dRasW9ahYeMxxQyu6.\n2. Pregunta una sola vez: \"¿Tiene un correo para enviarle la confirmación?\"\n4. Si dice no o no responde → cierra sin insistir.\n\n# CANCELAR\nSolicita en orden: nombre y apellido → fecha y hora. Solo cancela con ambos datos. Nunca llames CITAS sin el event_id.\n\n# RESPUESTAS\n- Cita cancelada → confirma y ofrece: \"¿Le gustaría agendar una nueva cita?\"\n- Slot OCUPADO si cualquier evento inicia o termina dentro de él.\n- Solo horas exactas: 9,10,11,12,1,2,3,4 (Lun-Vie) | 9,10,11,12,1 (Sáb) | Solo en Desarrollo: (Domingo) 9,10,11,12,1\n- Mantén en memoria la hora previamente indicada por el cliente.\nSi el cliente dice solamente una fecha (\"hoy\", \"mañana\", \"viernes\"), combínala con la última hora mencionada.\n\n# ESTILO\nEspañol, amable y directo. Máx 2-3 oraciones por mensaje. Una pregunta a la vez. Máx 2 emojis. Sin IDs ni JSON. Sin cálculos en voz alta.\nCRÍTICO: Si el cliente mencionó tipo de cita, fecha u hora en cualquier mensaje anterior, esos datos YA ESTÁN CONFIRMADOS. Pasar directamente al siguiente dato faltante.\n\n#REGLAS\n- No respondas preguntas que no esten relacionadas al agendamiento de citas o con EDEN2E. Solo guiate por las instrucciones que tenemos en este prompt.",
+          "maxIterations": 25
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        480,
+        2384
+      ],
+      "id": "9304a35a-7a16-47bb-ab64-68a4b043eb39",
+      "name": "AI Agent - Books Appointments",
+      "alwaysOutputData": true,
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.text }}",
+                    "rightValue": "[a-zA-Z0-9._%+\\-]+@[a-zA-Z0-9.\\-]+\\.[a-zA-Z]{2,}",
+                    "operator": {
+                      "type": "string",
+                      "operation": "regex"
+                    },
+                    "id": "c12d5d9f-e136-44df-877e-f57a56153631"
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        0,
+        2464
+      ],
+      "id": "5d193173-365b-4f90-84d5-f278b2388839",
+      "name": "¿Mensaje es email?"
+    },
+    {
+      "parameters": {
+        "jsCode": "let redisRaw = $input.first().json.propertyName || '';\n\n// Limpiar el = del inicio si existe\nif (redisRaw.startsWith('=')) {\n  redisRaw = redisRaw.slice(1);\n}\n\nconst cita = JSON.parse(redisRaw || '{}');\n\nconst texto = $('Extraer datos ').first().json.text;\nconst match = texto.match(/[a-zA-Z0-9._%+\\-]+@[a-zA-Z0-9.\\-]+\\.[a-zA-Z]{2,}/);\nconst email = match ? match[0] : '';\n\nreturn [{\n  json: {\n    email: email,\n    nombre: cita.nombre || '',\n    fecha_hora: cita.fecha_hora || '',\n    tipo_cita: cita.tipo_cita || '',\n    Telefono: cita.telefono || ''\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        320,
+        2160
+      ],
+      "id": "7734a4e8-e1a2-41d0-9f7f-cdc06721b04e",
+      "name": "Preparar datos email desde Redis"
+    },
+    {
+      "parameters": {
+        "operation": "set",
+        "key": "=cita:{{ $('Sub_gestion_citas').first().json.telefono }}",
+        "value": "=={{ JSON.stringify({\n  nombre:     $('Datos para Sheets').first().json.Nombre,\n  fecha_hora: $('Datos cita').first().json.start_time,\n  tipo_cita:  $('Datos para Sheets').first().json.Tipo_cita,\n  telefono:   $('Datos para Sheets').first().json.Telefono\n}) }}",
+        "expire": true,
+        "ttl": 86400
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        160,
+        1408
+      ],
+      "id": "95e6b986-a0ce-4c44-aaa4-08c9fe03f39f",
+      "name": "Redis Set",
+      "credentials": {
+        "redis": {
+          "id": "YOUR_REDIS_CREDENTIAL_ID",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "key": "=cita:{{ $('Extraer datos ').first().json.session_id }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        144,
+        2160
+      ],
+      "id": "4d19c402-7f0c-4d87-aaa3-9b9409f783bc",
+      "name": "Redis GET",
+      "credentials": {
+        "redis": {
+          "id": "YOUR_REDIS_CREDENTIAL_ID",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://automatizar-n8n-chatwoot.acvaud.easypanel.host/api/v1/accounts/1/conversations/{{ $('Webhook1').item.json.body.conversation.id }}/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "content",
+              "value": "={{ $json.resultado }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        688,
+        2160
+      ],
+      "id": "4c1e07de-e6d4-4464-a611-61f21c65f89a",
+      "name": "Respuesta en chat1",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "bC2ABRYbcdlVmGc8",
+          "name": "Header Auth account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "SgslJRnFv18DeMbI",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/SgslJRnFv18DeMbI",
+          "cachedResultName": "Sub_enviar_email"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "email": "={{ $json.email }}",
+            "nombre": "={{ $json.nombre }}",
+            "fecha_hora": "={{ $json.fecha_hora }}",
+            "tipo_cita": "={{ $json.tipo_cita }}",
+            "Telefono": "={{ $json.Telefono }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "email",
+              "displayName": "email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "nombre",
+              "displayName": "nombre",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "fecha_hora",
+              "displayName": "fecha_hora",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "tipo_cita",
+              "displayName": "tipo_cita",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "Telefono",
+              "displayName": "Telefono",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "mode": "each",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        496,
+        2160
+      ],
+      "id": "4a4a803f-a0da-4535-8857-cd21edf2a04b",
+      "name": "Call 'Sub_enviar_email'"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Crear cita": {
+      "main": [
+        [
+          {
+            "node": "Respuesta: agendado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Datos cita": {
+      "main": [
+        [
+          {
+            "node": "Crear cita",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respuesta: agendado": {
+      "main": [
+        [
+          {
+            "node": "Datos para Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filtrar evento": {
+      "main": [
+        [
+          {
+            "node": "If - existe cita?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Borrar evento": {
+      "main": [
+        [
+          {
+            "node": "Respuesta: cancelado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar fechas2": {
+      "main": [
+        [
+          {
+            "node": "Borrar evento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar fechas1": {
+      "main": [
+        [
+          {
+            "node": "Cancelar citas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar fechas": {
+      "main": [
+        [
+          {
+            "node": "Revisar disponibilidad",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If - está libre?": {
+      "main": [
+        [
+          {
+            "node": "Datos cita",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respuesta: no está disponible",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If - existe cita?": {
+      "main": [
+        [
+          {
+            "node": "Preparar fechas2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respuesta: no existe cita",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cancelar citas": {
+      "main": [
+        [
+          {
+            "node": "Filtrar evento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Revisar disponibilidad": {
+      "main": [
+        [
+          {
+            "node": "If - está libre?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tipo_accion": {
+      "main": [
+        [
+          {
+            "node": "Preparar fechas",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Preparar fechas1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sub_gestion_citas": {
+      "main": [
+        [
+          {
+            "node": "Tipo_accion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent - Books Appointments",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redis Chat Memory1": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent - Books Appointments",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook1": {
+      "main": [
+        [
+          {
+            "node": "Verificar mensaje entrante/saliente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Asesor Informativo1": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent - Books Appointments",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mensaje bienvenida1": {
+      "main": [
+        [
+          {
+            "node": "Respuesta bienvenida",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar video2": {
+      "main": [
+        [
+          {
+            "node": "Mensaje bienvenida1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Contacto en Sheets1": {
+      "main": [
+        [
+          {
+            "node": "Parsear es_nuevo1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Es nuevo contacto?1": {
+      "main": [
+        [
+          {
+            "node": "Guardar Nuevo Contacto1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Armar Mensaje Chatwoot1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar Nuevo Contacto1": {
+      "main": [
+        [
+          {
+            "node": "Armar Mensaje Chatwoot1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extraer Teléfono1": {
+      "main": [
+        [
+          {
+            "node": "Buscar Contacto en Sheets1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Armar Mensaje Chatwoot1": {
+      "main": [
+        [
+          {
+            "node": "Extraer Datos del Mensaje1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extraer Datos del Mensaje1": {
+      "main": [
+        [
+          {
+            "node": "Normalizar Variables1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar Variables1": {
+      "main": [
+        [
+          {
+            "node": "Actualizar Ultima Consulta1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Actualizar Ultima Consulta1": {
+      "main": [
+        [
+          {
+            "node": "Enrutar por Intención1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enrutar por Intención1": {
+      "main": [
+        [
+          {
+            "node": "Enviar video2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extraer datos ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parsear es_nuevo1": {
+      "main": [
+        [
+          {
+            "node": "¿Es nuevo contacto?1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extraer datos ": {
+      "main": [
+        [
+          {
+            "node": "¿Mensaje es email?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cálculo agendamiento": {
+      "main": [
+        [
+          {
+            "node": "AI Agent - Books Appointments",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Datos para Sheets": {
+      "main": [
+        [
+          {
+            "node": "Actualizar datos de agendamiento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verificar mensaje entrante/saliente": {
+      "main": [
+        [
+          {
+            "node": "Extraer Teléfono1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CITAS": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent - Books Appointments",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar email": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent - Books Appointments",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent - Books Appointments": {
+      "main": [
+        [
+          {
+            "node": "Respuesta en chat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Actualizar datos de agendamiento": {
+      "main": [
+        [
+          {
+            "node": "Redis Set",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Mensaje es email?": {
+      "main": [
+        [
+          {
+            "node": "Redis GET",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Cálculo agendamiento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar datos email desde Redis": {
+      "main": [
+        [
+          {
+            "node": "Call 'Sub_enviar_email'",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redis Set": {
+      "main": [
+        []
+      ]
+    },
+    "Redis GET": {
+      "main": [
+        [
+          {
+            "node": "Preparar datos email desde Redis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'Sub_enviar_email'": {
+      "main": [
+        [
+          {
+            "node": "Respuesta en chat1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "timezone": "America/Hermosillo",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "b10a9a0a-da9e-4f97-ae7e-7e8876f06b2c",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "YOUR_N8N_INSTANCE_ID"
+  },
+  "nodeGroups": [],
+  "id": "8Qdgc0Sjs3CVyosq",
+  "tags": []
+}
