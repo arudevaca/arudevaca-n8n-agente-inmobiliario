@@ -1,0 +1,281 @@
+{
+  "name": "Sub_enviar_email",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "email"
+            },
+            {
+              "name": "nombre"
+            },
+            {
+              "name": "fecha_hora"
+            },
+            {
+              "name": "tipo_cita"
+            },
+            {
+              "name": "Telefono"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -240,
+        -32
+      ],
+      "id": "19580c4f-3c6c-4c45-8d12-afb7b9521456",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\nconsole.log('DATA RECIBIDA:', JSON.stringify(data));\n\nconst email = data.email || data.body?.email || '';\nconst nombre = data.nombre || data.body?.nombre || 'Cliente';\nconst fecha_hora = data.fecha_hora || data.body?.fecha_hora || '';\nconst tipo_cita = data.tipo_cita || data.body?.tipo_cita || '';\nconst telefono = data.Telefono || data.body?.Telefono || '';\n\n// Formatear fecha de ISO a dd/mm/aa HH:MM\nlet fechaFormateada = fecha_hora;\nif (fecha_hora.includes('T')) {\n  const [datePart, timePart] = fecha_hora.split('T');\n  const [year, month, day] = datePart.split('-');\n  const [hour, minute] = timePart.split(':');\n  fechaFormateada = `${day}/${month}/${year.slice(2)} ${hour}:${minute}`;\n}\n\n// Bloque de ubicación según tipo de cita\nlet ubicacionInfo = '';\nconst tipoCitaLower = tipo_cita.toLowerCase();\n\nif (tipoCitaLower.includes('oficina')) {\n  ubicacionInfo = `📌 Lugar: EDEN2E\\n🗺️ Ubicación Oficina: https://maps.app.goo.gl/hgjg5mVDR9SUAWqy6`;\n} else if (tipoCitaLower.includes('desarrollo')) {\n  ubicacionInfo = `📌 Lugar: Nuevo Paraíso\\n🗺️ Ubicación Desarrollo: https://maps.app.goo.gl/dRasW9ahYeMxxQyu6`;\n} else {\n  ubicacionInfo = `📌 Tipo: ${tipo_cita}`;\n}\n\nreturn [{\n  json: {\n    to: email,\n    subject: 'Confirmación de cita ED3N2E',\n    body: `Hola ${nombre},\\n\\nTu cita ha sido confirmada exitosamente. 🎉\\n\\nDetalles:\\n📅 Fecha y hora: ${fechaFormateada}\\n${ubicacionInfo}\\n\\nCualquier duda estamos para ayudarte.\\n\\n¡Te esperamos!\\nEquipo ED3N2E`,\n    telefono: telefono,\n    email: email,\n    nombre: nombre,\n    tipo_cita: tipo_cita\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        -32
+      ],
+      "id": "e99767fa-34c6-46b9-804c-630ad40d9b97",
+      "name": "Preparar email"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "fb6529c1-b138-48d1-89c9-07862048ec2d",
+              "name": "resultado",
+              "value": "¡Listo! Le envié la confirmación al correo 📧 ¿Le puedo ayudar con algo más?",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        432,
+        -32
+      ],
+      "id": "e197f093-80d6-4530-ad43-20edbe50553b",
+      "name": "Respuesta: email enviado"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "Clientes EDEN2E - n8n",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1r9PMGCa26l6Wvb2G8fXgFAxpuNuJbpPq5HopZbkoe0U/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Hoja 1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Email": "={{ $json.email }}",
+            "row_number": 0,
+            "Telefono": "={{ $json.Telefono}}"
+          },
+          "matchingColumns": [
+            "Telefono"
+          ],
+          "schema": [
+            {
+              "id": "Nombre",
+              "displayName": "Nombre",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Telefono",
+              "displayName": "Telefono",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Tipo cita",
+              "displayName": "Tipo cita",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Ultima_consulta",
+              "displayName": "Ultima_consulta",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Fecha_cita",
+              "displayName": "Fecha_cita",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "locationDefine": {
+            "values": {
+              "headerRow": 2
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        0,
+        -240
+      ],
+      "id": "423c4af3-4c97-4197-87e5-adf71887ad68",
+      "name": "Actualizar fila (horizontal)",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_GOOGLE_SHEETS_CREDENTIAL_ID",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.to }}",
+        "subject": "={{ $json.subject }}",
+        "emailType": "text",
+        "message": "={{ $json.body }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        208,
+        -32
+      ],
+      "id": "84a74140-eef0-4240-94c4-e314be492cd8",
+      "name": "Enviar email",
+      "webhookId": "9bdc77bf-9720-40e9-b669-aad945b9f08a",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "YOUR_GMAIL_CREDENTIAL_ID",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Preparar email",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Actualizar fila (horizontal)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar email": {
+      "main": [
+        [
+          {
+            "node": "Enviar email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respuesta: email enviado": {
+      "main": [
+        []
+      ]
+    },
+    "Enviar email": {
+      "main": [
+        [
+          {
+            "node": "Respuesta: email enviado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "b05cfb0e-e34c-42aa-ab70-a6f89815b593",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "YOUR_N8N_INSTANCE_ID"
+  },
+  "nodeGroups": [],
+  "id": "SgslJRnFv18DeMbI",
+  "tags": []
+}
